@@ -3,5 +3,6 @@
     "files.exclude": {
         "**/Build": true,
         "**/Release": true
-    }
+    },
+    "editor.formatOnSave": true
 }
