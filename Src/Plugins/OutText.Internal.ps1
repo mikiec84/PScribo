@@ -70,7 +70,7 @@
 
                 ## Fix Set-StrictMode
                 if (-not (Test-Path -Path Variable:\Options)) {
-                    
+
                     $options = New-PScriboTextOption;
                 }
 
@@ -144,7 +144,7 @@
 
                 ## Fix Set-StrictMode
                 if (-not (Test-Path -Path Variable:\Options)) {
-                    
+
                     $options = New-PScriboTextOption;
                 }
 
@@ -195,7 +195,7 @@
 
                 ## Fix Set-StrictMode
                 if (-not (Test-Path -Path Variable:\Options)) {
-                    
+
                     $options = New-PScriboTextOption;
                 }
 
@@ -227,7 +227,7 @@
 
                 ## Fix Set-StrictMode
                 if (-not (Test-Path -Path Variable:\Options)) {
-                    
+
                     $options = New-PScriboTextOption;
                 }
 
@@ -272,14 +272,14 @@
 
                 ## Fix Set-StrictMode
                 if (-not (Test-Path -Path Variable:\Options)) {
-                    
+
                     $options = New-PScriboTextOption;
                 }
 
             }
             process {
 
-                ## Use the specified output width
+                ## Use the current output buffer width
                 if ($options.TextWidth -eq 0) { $options.TextWidth = $Host.UI.RawUI.BufferSize.Width -1; }
                 if ($Table.List) {
                     $text = ($Table.Rows | Select-Object -Property * -ExcludeProperty '*__Style' | Format-List | Out-String -Width $options.TextWidth).Trim();

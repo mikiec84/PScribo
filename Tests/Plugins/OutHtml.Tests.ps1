@@ -8,6 +8,26 @@ InModuleScope 'PScribo' {
     Describe 'OutHtml\OutHtml' {
         $path = (Get-PSDrive -Name TestDrive).Root;
 
+        It 'warns when 7 nested sections are defined' {
+            $testDocument = Document -Name 'IllegalNestedSections' -ScriptBlock {
+                Section -Name 'Level1' {
+                    Section -Name 'Level2' {
+                        Section -Name 'Level3' {
+                            Section -Name 'Level4' {
+                                Section -Name 'Level5' {
+                                    Section -Name 'Level6' {
+                                        Section -Name 'Level7' { }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            { $testDocument | OutHtml -Path $path -WarningAction Stop 3>&1 } | Should Throw '6 heading'
+        }
+
         It 'calls OutHtmlSection' {
             Mock -CommandName OutHtmlSection -Verifiable -MockWith { };
             Document -Name 'TestDocument' -ScriptBlock { Section -Name 'TestSection' -ScriptBlock { } } | OutHtml -Path $path;
@@ -331,6 +351,12 @@ InModuleScope 'PScribo' {
                 $result | Should BeExactly $expected;
             }
 
+            It 'creates paragraph with embedded new line' {
+                $expected = '<div>Embedded<br />New Line</div>';
+                $result = Paragraph "Embedded`r`nNew Line" | OutHtmlParagraph;
+                $result | Should BeExactly $expected;
+            }
+
         } #end context By Named Parameter
 
     } #end describe OutHtmlParagraph
@@ -453,7 +479,7 @@ InModuleScope 'PScribo' {
             BeforeEach {
                 ## Scaffold new document to initialise options/styles
                 $pscriboDocument = Document -Name 'Test' -ScriptBlock { };
-                $services = Get-Service | Select -First 3;
+                $services = Get-Service | Select-Object -First 3;
                 $table = $services | Table -Name 'Test Table' | OutHtmlTable;
                 [Xml] $html = $table.Replace('&','&amp;');
             }
@@ -473,6 +499,7 @@ InModuleScope 'PScribo' {
             It 'creates a row for each object.' {
                 $html.Div.Table.Tbody.Tr.Count | Should Be $services.Count;
             }
+
         }
 
         Context 'List.' {
@@ -505,6 +532,40 @@ InModuleScope 'PScribo' {
             }
 
         } #end context List
+
+        Context 'New Lines' {
+
+            BeforeEach {
+                ## Scaffold new document to initialise options/styles
+                $pscriboDocument = Document -Name 'Test' -ScriptBlock { };
+            }
+
+            It 'creates a tabular table cell with an embedded new line' {
+
+                $licenses = "Standard`r`nProfessional`r`nEnterprise"
+                $expected = '<td>Standard<br />Professional<br />Enterprise</td>';
+                $newLineTable = [PSCustomObject] @{ 'Licenses' = $licenses; }
+
+                $table = $newLineTable | Table -Name 'Test Table' | OutHtmlTable;
+
+                [Xml] $html = $table.Replace('&','&amp;');
+                $html.OuterXml | Should Match $expected;
+            }
+
+            It 'creates a list table cell with an embedded new line' {
+
+                $licenses = "Standard`r`nProfessional`r`nEnterprise"
+                $expected = '<td>Standard<br />Professional<br />Enterprise</td>';
+                $newLineTable = [PSCustomObject] @{ 'Licenses' = $licenses; }
+
+                $table = $newLineTable | Table -Name 'Test Table' | OutHtmlTable;
+
+                [Xml] $html = $table.Replace('&','&amp;');
+                $html.OuterXml | Should Match $expected;
+
+            }
+
+        }
 
     } #end describe OutHtmlTable
 

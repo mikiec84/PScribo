@@ -58,15 +58,25 @@
                 [ref] $null = $spacing.SetAttribute('after', $xmlnsMain, $spacingPt);
                 $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
                 $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
-                if ($Document.Options['EnableSectionNumbering']) { [string] $sectionName = '{0} {1}' -f $Section.Number, $Section.Name; }
-                else { [string] $sectionName = '{0}' -f $Section.Name; }
+                if ($Document.Options['EnableSectionNumbering']) {
+                    [System.String] $sectionName = '{0} {1}' -f $Section.Number, $Section.Name;
+                }
+                else {
+                    [System.String] $sectionName = '{0}' -f $Section.Name;
+                }
                 [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($sectionName));
 
                 foreach ($s in $Section.Sections.GetEnumerator()) {
-                    if ($s.Id.Length -gt 40) { $sectionId = '{0}[..]' -f $s.Id.Substring(0,36); }
-                    else { $sectionId = $s.Id; }
+                    if ($s.Id.Length -gt 40) {
+                        $sectionId = '{0}[..]' -f $s.Id.Substring(0,36);
+                    }
+                    else {
+                        $sectionId = $s.Id;
+                    }
                     $currentIndentationLevel = 1;
-                    if ($null -ne $s.PSObject.Properties['Level']) { $currentIndentationLevel = $s.Level +1; }
+                    if ($null -ne $s.PSObject.Properties['Level']) {
+                        $currentIndentationLevel = $s.Level +1;
+                    }
                     WriteLog -Message ($localized.PluginProcessingSection -f $s.Type, $sectionId) -Indent $currentIndentationLevel;
                     switch ($s.Type) {
                         'PScribo.Section' { $s | OutWordSection -RootElement $RootElement -XmlDocument $XmlDocument; }
@@ -115,41 +125,56 @@
                 [ref] $null = $spacing.SetAttribute('before', $xmlnsMain, 0);
                 [ref] $null = $spacing.SetAttribute('after', $xmlnsMain, 0);
 
-                $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
-                $rPr = $r.AppendChild($XmlDocument.CreateElement('w', 'rPr', $xmlnsMain));
-                ## Apply custom paragraph styles to the run..
-                if ($Paragraph.Font) {
-                    $rFonts = $rPr.AppendChild($XmlDocument.CreateElement('w', 'rFonts', $xmlnsMain));
-                    [ref] $null = $rFonts.SetAttribute('ascii', $xmlnsMain, $Paragraph.Font[0]);
-                    [ref] $null = $rFonts.SetAttribute('hAnsi', $xmlnsMain, $Paragraph.Font[0]);
-                }
-                if ($Paragraph.Size -gt 0) {
-                    $sz = $rPr.AppendChild($XmlDocument.CreateElement('w', 'sz', $xmlnsMain));
-                    [ref] $null = $sz.SetAttribute('val', $xmlnsMain, $Paragraph.Size * 2);
-                }
-                if ($Paragraph.Bold -eq $true) {
-                    [ref] $null = $rPr.AppendChild($XmlDocument.CreateElement('w', 'b', $xmlnsMain));
-                }
-                if ($Paragraph.Italic -eq $true) {
-                    [ref] $null = $rPr.AppendChild($XmlDocument.CreateElement('w', 'i', $xmlnsMain));
-                }
-                if ($Paragraph.Underline -eq $true) {
-                    $u = $rPr.AppendChild($XmlDocument.CreateElement('w', 'u', $xmlnsMain));
-                    [ref] $null = $u.SetAttribute('val', $xmlnsMain, 'single');
-                }
-                if (-not [System.String]::IsNullOrEmpty($Paragraph.Color)) {
-                    $color = $rPr.AppendChild($XmlDocument.CreateElement('w', 'color', $xmlnsMain));
-                    [ref] $null = $color.SetAttribute('val', $xmlnsMain, (ConvertToWordColor -Color $Paragraph.Color));
-                }
-
-                $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
-                [ref] $null = $t.SetAttribute('space', 'http://www.w3.org/XML/1998/namespace', 'preserve'); ## needs to be xml:space="preserve" NOT w:space...
                 if ([System.String]::IsNullOrEmpty($Paragraph.Text)) {
-                    [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($Paragraph.Id));
+                    $lines = $Paragraph.Id -Split [System.Environment]::NewLine;
                 }
                 else {
-                    [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($Paragraph.Text));
+                    $lines = $Paragraph.TexT -Split [System.Environment]::NewLine;
                 }
+
+                ## Create a separate run for each line/break
+                for ($l = 0; $l -lt $lines.Count; $l++) {
+
+                    $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                    $rPr = $r.AppendChild($XmlDocument.CreateElement('w', 'rPr', $xmlnsMain));
+                    ## Apply custom paragraph styles to the run..
+                    if ($Paragraph.Font) {
+                        $rFonts = $rPr.AppendChild($XmlDocument.CreateElement('w', 'rFonts', $xmlnsMain));
+                        [ref] $null = $rFonts.SetAttribute('ascii', $xmlnsMain, $Paragraph.Font[0]);
+                        [ref] $null = $rFonts.SetAttribute('hAnsi', $xmlnsMain, $Paragraph.Font[0]);
+                    }
+                    if ($Paragraph.Size -gt 0) {
+                        $sz = $rPr.AppendChild($XmlDocument.CreateElement('w', 'sz', $xmlnsMain));
+                        [ref] $null = $sz.SetAttribute('val', $xmlnsMain, $Paragraph.Size * 2);
+                    }
+                    if ($Paragraph.Bold -eq $true) {
+                        [ref] $null = $rPr.AppendChild($XmlDocument.CreateElement('w', 'b', $xmlnsMain));
+                    }
+                    if ($Paragraph.Italic -eq $true) {
+                        [ref] $null = $rPr.AppendChild($XmlDocument.CreateElement('w', 'i', $xmlnsMain));
+                    }
+                    if ($Paragraph.Underline -eq $true) {
+                        $u = $rPr.AppendChild($XmlDocument.CreateElement('w', 'u', $xmlnsMain));
+                        [ref] $null = $u.SetAttribute('val', $xmlnsMain, 'single');
+                    }
+                    if (-not [System.String]::IsNullOrEmpty($Paragraph.Color)) {
+                        $color = $rPr.AppendChild($XmlDocument.CreateElement('w', 'color', $xmlnsMain));
+                        [ref] $null = $color.SetAttribute('val', $xmlnsMain, (ConvertToWordColor -Color $Paragraph.Color));
+                    }
+
+                    $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                    [ref] $null = $t.SetAttribute('space', 'http://www.w3.org/XML/1998/namespace', 'preserve'); ## needs to be xml:space="preserve" NOT w:space...
+                    [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($lines[$l]));
+
+                    if ($l -lt ($lines.Count -1)) {
+                        ## Don't add a line break to the last line/break
+                        $brr = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                        $brt = $brr.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                        [ref] $null = $brt.AppendChild($XmlDocument.CreateElement('w', 'br', $xmlnsMain));
+                    }
+
+                } #end foreach line break
+
                 return $p;
 
             } #end process
@@ -415,9 +440,23 @@
                                     }
                                 }
 
-                                $r2 = $p2.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
-                                $t2 = $r2.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
-                                [ref] $null = $t2.AppendChild($XmlDocument.CreateTextNode($row.($propertyName)));
+                                ## Create a separate run for each line/break
+                                $lines = $row.($propertyName).ToString() -split [System.Environment]::NewLine;
+                                for ($l = 0; $l -lt $lines.Count; $l++) {
+
+                                    $r2 = $p2.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                                    $t2 = $r2.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                                    [ref] $null = $t2.AppendChild($XmlDocument.CreateTextNode($lines[$l]));
+                                    if ($l -lt ($lines.Count -1)) {
+
+                                        ## Don't add a line break to the last line/break
+                                        $r3 = $p2.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                                        $t3 = $r3.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                                        [ref] $null = $t3.AppendChild($XmlDocument.CreateElement('w', 'br', $xmlnsMain));
+                                    }
+
+                                } #end foreach line break
+
                             }
                         } #end for each property
                      } #end foreach row
@@ -494,9 +533,24 @@
                             $pPr = $p.AppendChild($XmlDocument.CreateElement('w', 'pPr', $xmlnsMain));
                             $pStyle = $pPr.AppendChild($XmlDocument.CreateElement('w', 'pStyle', $xmlnsMain));
                             [ref] $null = $pStyle.SetAttribute('val', $xmlnsMain, $cellStyleName);
-                            $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
-                            $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
-                            [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($row.($propertyName)));
+
+                            ## Create a separate run for each line/break
+                            $lines = $row.($propertyName).ToString() -split [System.Environment]::NewLine;
+                            for ($l = 0; $l -lt $lines.Count; $l++) {
+
+                                $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                                $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                                [ref] $null = $t.AppendChild($XmlDocument.CreateTextNode($lines[$l]));
+                                if ($l -lt ($lines.Count -1)) {
+
+                                    ## Don't add a line break to the last line/break
+                                    $r = $p.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
+                                    $t = $r.AppendChild($XmlDocument.CreateElement('w', 't', $xmlnsMain));
+                                    [ref] $null = $t.AppendChild($XmlDocument.CreateElement('w', 'br', $xmlnsMain));
+                                }
+
+                            } #end foreach line break
+
                         } #end foreach property
                         $isAlternatingRow = !$isAlternatingRow;
                     } #end foreach row
@@ -533,7 +587,7 @@
 
                 $sdtContent = $sdt.AppendChild($XmlDocument.CreateElement('w', 'stdContent', $xmlnsMain));
                 $p1 = $sdtContent.AppendChild($XmlDocument.CreateElement('w', 'p', $xmlnsMain));
-	            $pPr1 = $p1.AppendChild($XmlDocument.CreateElement('w', 'pPr', $xmlnsMain));
+                $pPr1 = $p1.AppendChild($XmlDocument.CreateElement('w', 'pPr', $xmlnsMain));
                 $pStyle1 = $pPr1.AppendChild($XmlDocument.CreateElement('w', 'pStyle', $xmlnsMain));
                 [ref] $null = $pStyle1.SetAttribute('val', $xmlnsMain, 'TOC');
                 $r1 = $p1.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
@@ -541,7 +595,7 @@
                 [ref] $null = $t1.AppendChild($XmlDocument.CreateTextNode($TOC.Name));
 
                 $p2 = $sdtContent.AppendChild($XmlDocument.CreateElement('w', 'p', $xmlnsMain));
-	            $pPr2 = $p2.AppendChild($XmlDocument.CreateElement('w', 'pPr', $xmlnsMain));
+                $pPr2 = $p2.AppendChild($XmlDocument.CreateElement('w', 'pPr', $xmlnsMain));
                 $tabs2 = $pPr2.AppendChild($XmlDocument.CreateElement('w', 'tabs', $xmlnsMain));
                 $tab2 = $tabs2.AppendChild($XmlDocument.CreateElement('w', 'tab', $xmlnsMain));
                 [ref] $null = $tab2.SetAttribute('val', $xmlnsMain, 'right');
@@ -563,7 +617,7 @@
 
                 $p3 = $sdtContent.AppendChild($XmlDocument.CreateElement('w', 'p', $xmlnsMain));
                 $r5 = $p3.AppendChild($XmlDocument.CreateElement('w', 'r', $xmlnsMain));
-	            #$rPr3 = $r3.AppendChild($XmlDocument.CreateElement('w', 'rPr', $xmlnsMain));
+                #$rPr3 = $r3.AppendChild($XmlDocument.CreateElement('w', 'rPr', $xmlnsMain));
                 $fldChar3 = $r5.AppendChild($XmlDocument.CreateElement('w', 'fldChar', $xmlnsMain));
                 [ref] $null = $fldChar3.SetAttribute('fldCharType', $xmlnsMain, 'end');
 
@@ -633,7 +687,6 @@
                     $linkId = $Style.Id;
                 }
 
-
                 $documentStyle = $XmlDocument.CreateElement('w', 'style', $xmlnsMain);
                 [ref] $null = $documentStyle.SetAttribute('type', $xmlnsMain, $Type.ToLower());
                 if ($Style.Id -eq $Document.DefaultStyle) {
@@ -642,8 +695,8 @@
                     $uiPriority = $documentStyle.AppendChild($XmlDocument.CreateElement('w', 'uiPriority', $xmlnsMain));
                     [ref] $null = $uiPriority.SetAttribute('val', $xmlnsMain, 1);
                 }
-                elseif (($Style.Id -eq 'Footer') -or ($Style.Id -eq 'Header')) {
-                    ## Semi hide the styles named Footer and Header
+                elseif ($Style.Hidden -eq $true) {
+                    ## Semi hide style (headers and footers etc)
                     [ref] $null = $documentStyle.AppendChild($XmlDocument.CreateElement('w', 'semiHidden', $xmlnsMain));
                 }
                 elseif (($document.TableStyles.Values | ForEach-Object { $_.HeaderStyle; $_.RowStyle; $_.AlternateRowStyle; }) -contains $Style.Id) {
